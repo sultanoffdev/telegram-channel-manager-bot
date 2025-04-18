@@ -38,6 +38,28 @@ npm install
 npm start
 ```
 
+## Настройка базы данных
+
+### Локальная разработка с MongoDB
+
+1. Установите [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+2. Установите [MongoDB Compass](https://www.mongodb.com/try/download/compass) (графический интерфейс для MongoDB)
+3. Запустите MongoDB локально: 
+   - Windows: MongoDB запускается как служба при установке
+   - Linux: `sudo systemctl start mongod`
+   - macOS: `brew services start mongodb-community`
+4. Подключитесь к MongoDB через MongoDB Compass используя строку: `mongodb://127.0.0.1:27017`
+5. Создайте базу данных с именем `telegram_bot`
+
+### Использование MongoDB Atlas (для продакшн)
+
+1. Создайте бесплатный кластер на [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Создайте пользователя базы данных
+3. Получите строку подключения и обновите ее в `.env`:
+```
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/telegram_bot?retryWrites=true&w=majority
+```
+
 ## Настройка
 
 Для работы бота необходимо создать файл `.env` со следующими параметрами:
@@ -76,8 +98,23 @@ DEFAULT_TIMEZONE=Europe/Moscow
    - **Build Command**: `npm install`
    - **Start Command**: `node src/index.js`
    - **Environment Variables**: Добавьте все необходимые переменные из файла `.env`
+   - Для работы webhook добавьте следующие переменные:
+     ```
+     IS_RENDER=true
+     WEBHOOK_DOMAIN=https://ваш-домен-на-render.onrender.com
+     ```
 
-Render автоматически определит порт из переменной окружения `PORT`.
+### Режимы работы бота
+
+Бот может работать в двух режимах:
+
+1. **Long Polling** (по умолчанию) - бот регулярно опрашивает Telegram API на наличие новых сообщений. Этот режим подходит для разработки и простого деплоя.
+
+2. **Webhook** - Telegram отправляет уведомления на ваш сервер. Этот режим более эффективен для продакшн.
+   
+   Для активации webhook:
+   - Установите переменную окружения `IS_RENDER=true`
+   - Укажите домен вашего приложения `WEBHOOK_DOMAIN=https://your-app.onrender.com`
 
 ## Лицензия
 

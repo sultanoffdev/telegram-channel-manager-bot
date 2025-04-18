@@ -30,10 +30,17 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Определяем, будем ли использовать webhook (на основе наличия переменной окружения)
+const isDevelopment = !process.env.IS_RENDER;
+const webhookDomain = process.env.WEBHOOK_DOMAIN;
+
 // Добавляем простой эндпоинт для проверки состояния (health check)
 app.get('/', (req, res) => {
   res.send('Telegram bot is running!');
 });
+
+// Добавляем эндпоинт для webhook
+app.use(express.json());
 
 // Функция для запуска бота
 async function startBot() {
@@ -46,8 +53,20 @@ async function startBot() {
         dbName: 'telegram_bot'
       });
       console.log('✅ Подключено к MongoDB');
+      
+      // Проверка доступности базы данных
+      const admin = mongoose.connection.db.admin();
+      const serverInfo = await admin.serverInfo();
+      console.log(`MongoDB версия: ${serverInfo.version}`);
+      
+      // Получение списка коллекций для проверки соединения
+      const collections = await mongoose.connection.db.listCollections().toArray();
+      console.log(`Доступные коллекции: ${collections.map(c => c.name).join(', ') || 'Нет коллекций'}`);
+      
     } catch (dbError) {
       console.warn('⚠️ Ошибка подключения к MongoDB:', dbError.message);
+      console.warn('⚠️ Полная информация об ошибке:', JSON.stringify(dbError, null, 2));
+      console.warn('⚠️ Проверьте правильность строки подключения MONGODB_URI в файле .env');
       console.warn('⚠️ Продолжаем работу без базы данных. Некоторые функции будут недоступны.');
     }
 
@@ -79,9 +98,27 @@ async function startBot() {
     });
 
     console.log('Запуск бота...');
-    // Запускаем бота
-    await bot.launch();
-    console.log('✅ Бот успешно запущен');
+    // Запускаем бота: long polling в разработке, webhook в production
+    if (isDevelopment) {
+      console.log('Запуск в режиме long polling...');
+      await bot.launch();
+      console.log('✅ Бот успешно запущен в режиме long polling');
+    } else {
+      // Для webhook на Render
+      if (!webhookDomain) {
+        console.warn('⚠️ WEBHOOK_DOMAIN не задан в переменных окружения, будет использован long polling');
+        await bot.launch();
+        console.log('✅ Бот запущен в режиме long polling');
+      } else {
+        console.log(`Настройка webhook на домене ${webhookDomain}...`);
+        const secretPath = `/telegraf/${bot.secretPathComponent()}`;
+        await bot.telegram.setWebhook(`${webhookDomain}${secretPath}`);
+        
+        // Настраиваем обработчик webhook
+        app.use(bot.webhookCallback(secretPath));
+        console.log('✅ Бот успешно запущен в режиме webhook');
+      }
+    }
 
     // Запускаем HTTP-сервер
     app.listen(PORT, () => {
