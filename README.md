@@ -64,6 +64,21 @@ DEFAULT_TIMEZONE=Europe/Moscow
 2. Добавьте ваши каналы в разделе "Мои каналы"
 3. Используйте интерфейс для управления постами, защитой и прочими функциями
 
+## Деплой на Render
+
+Для размещения бота на [Render](https://render.com/):
+
+1. Создайте аккаунт на Render
+2. Добавьте новый Web Service, подключив GitHub репозиторий
+3. Настройте сервис:
+   - **Name**: telegram-channel-manager-bot
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `node src/index.js`
+   - **Environment Variables**: Добавьте все необходимые переменные из файла `.env`
+
+Render автоматически определит порт из переменной окружения `PORT`.
+
 ## Лицензия
 
 MIT

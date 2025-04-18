@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { Telegraf, session } = require('telegraf');
 const mongoose = require('mongoose');
+const express = require('express');
 const { setupScenes } = require('./scenes');
 const { setupCommands } = require('./commands');
 const { setupMiddlewares } = require('./middlewares');
@@ -24,6 +25,15 @@ console.log('BOT_TOKEN найден:', process.env.BOT_TOKEN.substring(0, 10) + 
 console.log('MONGODB_URI найден:', process.env.MONGODB_URI);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+// Создаем Express сервер для прослушивания HTTP-запросов
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Добавляем простой эндпоинт для проверки состояния (health check)
+app.get('/', (req, res) => {
+  res.send('Telegram bot is running!');
+});
 
 // Функция для запуска бота
 async function startBot() {
@@ -72,6 +82,11 @@ async function startBot() {
     // Запускаем бота
     await bot.launch();
     console.log('✅ Бот успешно запущен');
+
+    // Запускаем HTTP-сервер
+    app.listen(PORT, () => {
+      console.log(`✅ HTTP-сервер запущен на порту ${PORT}`);
+    });
 
     // Включаем graceful stop
     process.once('SIGINT', () => {
